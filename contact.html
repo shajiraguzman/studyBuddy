@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" href="main.css">
+  <title>Contact Study Buddy</title>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.7/css/all.css">
+</head>
+<header>
+  <h1>Study Buddy</h1>
+  <p>UNT Course Material for Students</p>
+</header>
+<style>
+  /* Toggle Dark Theme */
+  #theme-btn {
+  position: relative;
+  top: -45px;  /* Adjust this value as needed */
+  right: 45px; /* Adjust this value as needed */
+  font-size: 2.5rem;
+  cursor: pointer;
+  color: #596AFF;
+}
+  #theme-btn:hover {
+    color: #BB86FC;
+  }
+  .changeTheme {
+    background: #1D1E22;
+    color: #eee;
+  }
+  </style>
+<body>
+  <div id="theme-btn" class="far fa-moon" style="float:right"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const themeBtn = document.getElementById("theme-btn");
+
+  // Check for saved theme preference in local storage
+  const currentTheme = localStorage.getItem('theme');
+  if (currentTheme === 'dark') {
+    document.body.classList.add("changeTheme");
+    themeBtn.classList.add("fa-sun");
+  } else {
+    document.body.classList.remove("changeTheme");
+    themeBtn.classList.remove("fa-sun");
+  }
+
+  themeBtn.onclick = () => {
+    document.body.classList.toggle("changeTheme");
+    themeBtn.classList.toggle("fa-sun");
+
+    // Save theme preference in local storage
+    if (document.body.classList.contains("changeTheme")) {
+      localStorage.setItem('theme', 'dark');
+    } else {
+      localStorage.setItem('theme', 'light');
+    }
+  }
+});
+
+</script>
+  
+
+  <div class="topnav">
+    <a href="index.html">Home</a>
+    <a href="upload.html">Upload</a>
+    <a href="contact.html">Contact</a>
+    <a href="about_us.html">About Us</a>
+    <a href="login.html" id="loginLink" style="float:right">Login</a>
+    <a href="#" id="logoutLink" style="float:right" hidden onclick="logout()">Logout</a>
+  </div>
+
+  <div class="content">
+    <div class="rightcolumn">
+      <h2>Contact Us</h2>
+      <p>Have questions, suggestions, or need assistance? Drop us a message and we'll get back to you!</p>
+      <p>(Note: This is a mockup page. We will not actually get back to you.)</p>
+
+        <textarea id="freeform" name="freeform" rows="7" cols="50" placeholder="Enter your message here..."></textarea>
+        <br><br>
+
+        <label for="email">Your Email:</label>
+        <br>
+        <input type="email" id="email" name="email" placeholder="example@example.com" required>
+        <br><br> 
+
+        <input type="submit" value="Submit">
+    </div>
+  </div>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+  <!-- Your web app's Firebase configuration -->
+  <script>
+      const firebaseConfig = {
+          // Your Firebase configuration
+          apiKey: "AIzaSyBLZ2TYsE8R3UthJtcDBAaF_jBpy_nQ6AQ",
+  authDomain: "study-buddy-4a942.firebaseapp.com",
+  databaseURL: "https://study-buddy-4a942-default-rtdb.firebaseio.com",
+  projectId: "study-buddy-4a942",
+  storageBucket: "study-buddy-4a942.appspot.com",
+  messagingSenderId: "838565234860",
+  appId: "1:838565234860:web:18b70bd110e7b503727709"
+      };
+      firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <!-- Script to handle login/logout state -->
+  <script>
+    // Check if the user is logged in
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            // User is signed in, hide login and show logout
+            document.getElementById('loginLink').style.display = 'none';
+            document.getElementById('logoutLink').style.display = 'block';
+        } else {
+            // No user is signed in, show login and hide logout
+            document.getElementById('loginLink').style.display = 'block';
+            document.getElementById('logoutLink').style.display = 'none';
+        }
+    });
+
+    function logout() {
+        firebase.auth().signOut().then(function() {
+            // Sign-out successful, update links
+            document.getElementById('loginLink').style.display = 'block';
+            document.getElementById('logoutLink').style.display = 'none';
+        }).catch(function(error) {
+            // An error happened during logout
+            console.error('Logout Error:', error);
+        });
+    }
+  </script>
+</body>
+
+
+</html>

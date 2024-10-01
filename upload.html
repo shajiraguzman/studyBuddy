@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <link rel="stylesheet" href="main.css">
+    <title>Upload</title>
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.0.7/css/all.css">
+    <script>
+        //checks if material type is a file upload or video URL
+        function uploadOrURL() {
+            if (document.getElementById('yesUpload').checked) { //if upload is checked, dislplay upload option and hide URL option
+                document.getElementById('ifUpload').style.visibility = 'visible';
+                document.getElementById('ifURL').style.visibility = 'hidden';
+            }
+            else if (document.getElementById('yesURL').checked) { //if URL is checked, display URL option and hide upload option
+                document.getElementById('ifUpload').style.visibility = 'hidden';
+                document.getElementById('ifURL').style.visibility = 'visible'
+            }
+
+        } 
+    </script>
+  </head>
+  <style>
+    /* Toggle Dark Theme */
+    #theme-btn {
+  position: relative;
+  top: -45px;  /* Adjust this value as needed */
+  right: 45px; /* Adjust this value as needed */
+  font-size: 2.5rem;
+  cursor: pointer;
+  color: #596AFF;
+}
+    #theme-btn:hover {
+      color: #BB86FC;
+    }
+    .changeTheme {
+      background: #1D1E22;
+      color: #eee;
+    }
+    </style>
+
+  <header>
+    <h1>Study Buddy</h1>
+    <p>UNT Course Material for Students</p>
+  </header>
+
+  <body>
+    <div id="theme-btn" class="far fa-moon" style="float:right"></div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const themeBtn = document.getElementById("theme-btn");
+
+  // Check for saved theme preference in local storage
+  const currentTheme = localStorage.getItem('theme');
+  if (currentTheme === 'dark') {
+    document.body.classList.add("changeTheme");
+    themeBtn.classList.add("fa-sun");
+  } else {
+    document.body.classList.remove("changeTheme");
+    themeBtn.classList.remove("fa-sun");
+  }
+
+  themeBtn.onclick = () => {
+    document.body.classList.toggle("changeTheme");
+    themeBtn.classList.toggle("fa-sun");
+
+    // Save theme preference in local storage
+    if (document.body.classList.contains("changeTheme")) {
+      localStorage.setItem('theme', 'dark');
+    } else {
+      localStorage.setItem('theme', 'light');
+    }
+  }
+});
+
+</script>
+    <div class="topnav">
+      <a href="index.html">Home</a>
+      <a href="upload.html">Upload</a>
+      <a href="contact.html">Contact</a>
+      <a href="about_us.html">About Us</a>
+
+      <a href="login.html" id="loginLink" style="float:right">Login</a>
+    <a href="#" id="logoutLink" style="float:right" hidden onclick="logout()">Logout</a>
+    </div>
+
+    <div class="rightcolumn">
+      <div class="card">
+        <h2>Welcome to Study Buddy!</h2>
+        <h2>Uploads</h2>
+        <p>Choose file type:</p>
+
+        <form action="/action_page.php">
+            Upload <input type="radio" onclick="javascript:uploadOrURL();" name="yesno" id="yesUpload"> 
+            Video URL <input type="radio" onclick="javascript:uploadOrURL();" name="yesno" id="yesURL"><br>
+
+            <div id="ifUpload" style="visibility:hidden">
+                Filename: <input type='text' id='upload' name='upload'><br><br>
+                <input type="file" id="myFile" name="filename"><br>
+                <input type="submit">
+            </div>
+            <div id="ifURL" style="visibility:hidden">
+                Filename: <input type='text' id='url' name='url'><br><br>
+                Video URL: <input type='text' id='videoURL' name='videoURL'><br>
+                <input type="submit">
+            </div>
+        </form>
+
+        <br><div id="paragraph">Note: back end not yet implemented. Uploading not available.</div>
+
+      </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+
+  <!-- Your web app's Firebase configuration -->
+  <script>
+      const firebaseConfig = {
+          // Your Firebase configuration
+          apiKey: "AIzaSyBLZ2TYsE8R3UthJtcDBAaF_jBpy_nQ6AQ",
+  authDomain: "study-buddy-4a942.firebaseapp.com",
+  databaseURL: "https://study-buddy-4a942-default-rtdb.firebaseio.com",
+  projectId: "study-buddy-4a942",
+  storageBucket: "study-buddy-4a942.appspot.com",
+  messagingSenderId: "838565234860",
+  appId: "1:838565234860:web:18b70bd110e7b503727709"
+      };
+      firebase.initializeApp(firebaseConfig);
+  </script>
+
+  <!-- Script to handle login/logout state -->
+  <script>
+    // Check if the user is logged in
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            // User is signed in, hide login and show logout
+            document.getElementById('loginLink').style.display = 'none';
+            document.getElementById('logoutLink').style.display = 'block';
+        } else {
+            // No user is signed in, show login and hide logout
+            document.getElementById('loginLink').style.display = 'block';
+            document.getElementById('logoutLink').style.display = 'none';
+        }
+    });
+
+    function logout() {
+        firebase.auth().signOut().then(function() {
+            // Sign-out successful, update links
+            document.getElementById('loginLink').style.display = 'block';
+            document.getElementById('logoutLink').style.display = 'none';
+        }).catch(function(error) {
+            // An error happened during logout
+            console.error('Logout Error:', error);
+        });
+    }
+  </script>
+  </body>
+
+
+</html>

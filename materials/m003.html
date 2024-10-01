@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <link rel="stylesheet" href="../main.css">
+        <script src="https://code.jquery.com/jquery-3.7.0.js"></script>      
+    </head>
+
+    <header>
+        <h1>Study Buddy</h1>
+        <p>UNT Course Material for Students</p>
+    </header>
+
+    <body>
+        <div class="topnav">
+            <a href="../index.html">Home</a>
+            <a href="../upload.html">Upload</a>
+            <a href="../contact.html">Contact</a>
+            <a href="../about_us.html">About Us</a>
+            <a href="#" style="float:right">Logout</a>
+        </div>
+
+        <div class="rightcolumn">
+            <div class="card">
+                <!-- <p><span id="pageName"></span></p><br> -->
+
+                <div class="paragraph-left"><h2><span id="courseName"></span></div> 
+                <div class="paragraph-left"><h2><span id="materialName"></span></div>
+                
+                <div class="paragraph-left">Status: <span id="status"></span></div>
+                <div class="paragraph-left">Type: <span id="materialType"></span></div>
+                <div class="paragraph-left">Uploaded by <span id="uploader"></span> on <span id="uploadDate"></span>.</div><br>
+                
+                <!-- Used to test displayMaterialContent. -->
+                <!-- <div class="paragraph-left"><span id="testTestTest"></span></div> -->
+                
+                <div class="displayContent"></div>
+                
+                
+            </div>
+        </div>
+        
+        <script type="module">
+            // Import method used: https://firebase.google.com/docs/web/alt-setup#from-the-cdn
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js'
+            import { getAuth } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js'
+            import { child, get, getDatabase, onValue, ref, set } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-database.js'
+            import { getStorage, getDownloadURL, ref as sRef } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-storage.js";
+
+
+            // See: https://firebase.google.com/docs/web/learn-more#config-object
+            const firebaseConfig = {
+              apiKey: "AIzaSyBLZ2TYsE8R3UthJtcDBAaF_jBpy_nQ6AQ",
+              authDomain: "study-buddy-4a942.firebaseapp.com",
+              databaseURL: "https://study-buddy-4a942-default-rtdb.firebaseio.com",
+              projectId: "study-buddy-4a942",
+              storageBucket: "study-buddy-4a942.appspot.com",
+              messagingSenderId: "838565234860",
+              appId: "1:838565234860:web:18b70bd110e7b503727709"
+            };
+            const app = initializeApp(firebaseConfig);
+
+            // Initialize Realtime Database and get a reference to the service
+            const database = getDatabase(app);
+
+            // Returns the name of the current file with no extension.  Used to call database
+            // entries since materials filenames match with database IDs.
+            function getPageName() {
+                var path = window.location.pathname;
+                var page = path.split("/").pop();
+                if (page.split(".").pop() === "html") {
+                    page = page.split(".").at(0);
+                }
+                return page;
+            }
+            
+            
+            // Adds HTML content to display a materials file read from the database.  Adds different
+            // HTML content based on the file type of the material.
+            function displayMaterialContent(entry, materialType) {
+                onValue(ref(database, entry + '/content'), (snapshot) => {
+                    var contentURL = snapshot.val();
+                    var extension = contentURL.split(".").pop();
+                                      
+                    // If material is found to be stored in Firebase Storage, embeds content in page.
+                    var embedDone = false;
+                    if (contentURL.substring(0, 5) == "gs://") {
+                        contentURL = loadFromStorageAndEmbed(contentURL, extension);
+                        embedDone = true;
+                    }                    
+                    
+                    // If material is an external Youtube video, embeds it in the page.
+                    // FIXME: doesn't work!!
+                    if (contentURL.search("youtube") != -1) {
+                        var youtubeID = contentURL.substr(contentURL.search("?v=") + "?v=".length);
+                        console.log(youtubeID);
+                        $('.displayContent').append('<p>This works.</p>');
+                        $('.displayContent').append('<iframe width="960" height="550" src="https://www.youtube.com/embed/' + youtubeID +
+                            '" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; ' + 
+                            'encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>');
+//                        embedDone = true; // FIXME comment this back in when the above code works.
+                    }                        
+
+                    if (!embedDone) {
+                        // FIXME this line should be removed once material embedding
+                        // works for stored and non-stored materials of all types.
+                        $('.displayContent').append('<div class="paragraph-left">Material URL: ' + contentURL + '</div>' +
+                            '<br><div class="paragraph-left">Embedded content coming soon.</div>');                                        
+                    }                                           
+                                            
+                    // TODO Implement HTML for other file types.  
+                    // Implement identification of youtube and other non-cloud storage URLs.
+                })
+                
+            }
+            
+            // Generates a proper URL from a Firebase Storage location (gs://) URL, then embeds it in the page.
+            function loadFromStorageAndEmbed(storageLocation, extension) {
+                const storage = getStorage();
+                getDownloadURL(sRef(storage, storageLocation))
+                  .then((url) => {
+                    // `url` is the download URL for 'images/example.jpg'
+
+/*                    // This can be downloaded directly:
+                    const xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob';
+                    xhr.onload = (event) => {
+                      const blob = xhr.response;
+                    };
+                    xhr.open('GET', url);
+                    xhr.send();
+
+                    // Or inserted into an <img> element
+                    const img = document.getElementById('myimg');
+                    img.setAttribute('src', url);
+*/
+                    // If stored material content is a PDF, embeds it in the page.
+                    if (extension === "pdf") {
+                        $('.displayContent').append('<object data="' + url + '" width="900" height="750">');                    
+                    }
+                                        
+                    // If stored material content is a TXT file, embeds it and provides a download link since the embedding
+                    // doesn't already present a download button.
+                    if (extension === "txt") {
+                        $('.displayContent').append('<div class="paragraph-left"><a href="' + url + '">Download</a></div>');
+                        $('.displayContent').append('<iframe src="' + url + '" width="700" height="750" frameBorder="1">');
+                    }
+                    
+                    // If stored material content is a Powerpoint or Word document, provides a download link, since Microsoft documents can't
+                    // easily be embedded.
+                    if (extension === "pptx" || extension === "ppt") {
+                        $('.displayContent').append('<div class="paragraph-left">We can\'t embed this material since it\s a Powerpoint document, ' +
+                            'but you can <a href="' + url + '">download</a> it.</div>');
+                    }
+                    if (extension === "docx" || extension === "doc") {
+                        $('.displayContent').append('<div class="paragraph-left">We can\'t embed this material since it\s a Word document, ' +
+                            'but you can <a href="' + url + '">download</a> it.</div>');
+                    }
+                    
+                    // If stored material content is an image, embeds it in the page.
+                    if (extension === "png" || extension === "jpg" || extension === "jpeg" || extension === "bmp" || extension === "gif") {
+                        const imageName = url.split(".").pop();
+                        $('.displayContent').append('<div class="paragraph-left"><img src="' + url + '"" alt="' + imageName + '" width="700"></div>');
+                    }
+                    
+                    
+
+                  })
+                  .catch((error) => {
+                    // FIXME Implement error messages.
+                  });
+            }
+            
+            
+            // Populates text fields with data from database values.
+            function populateMaterialInfo() {
+                // Gets the name of the currently running HTML file then calls the database entry
+                // which matches that name.
+                const pageName = getPageName();
+//                    document.getElementById("pageName").innerHTML = pageName;                
+                var entry = 'materials/' + pageName + '/';
+
+                // Uses the database entry's values to populate text fields.
+                onValue(ref(database, entry), (snapshot) => {
+                    document.getElementById("courseName").innerHTML = snapshot.child('/course').val();
+                    document.getElementById("materialName").innerHTML = snapshot.child('/name').val();
+
+                    var status = snapshot.child('/status').val();
+                    status = status.charAt(0).toUpperCase() + status.slice(1);
+                    document.getElementById("status").innerHTML = status;
+
+                    var materialType = "";
+                    document.getElementById("materialType").innerHTML = snapshot.child('type').val();
+                    materialType = snapshot.child('type').val();
+
+                    document.getElementById("uploadDate").innerHTML = snapshot.child('/uploadDate').val();
+                    document.getElementById("uploader").innerHTML = snapshot.child('/uploader').val();    
+                })                
+                
+/*                onValue(ref(database, entry + '/course'), (snapshot) => {
+                    document.getElementById("courseName").innerHTML = snapshot.val();
+                })
+                onValue(ref(database, entry + '/name'), (snapshot) => {
+                    document.getElementById("materialName").innerHTML = snapshot.val();
+                })
+                onValue(ref(database, entry + '/status'), (snapshot) => {
+                    var status = snapshot.val();
+                    status = status.charAt(0).toUpperCase() + status.slice(1);
+                    document.getElementById("status").innerHTML = status;
+                })
+                var materialType = "";
+                onValue(ref(database, entry + '/type'), (snapshot) => {
+                    document.getElementById("materialType").innerHTML = snapshot.val();
+                    materialType = snapshot.val();
+                })
+                onValue(ref(database, entry + '/uploadDate'), (snapshot) => {
+                    document.getElementById("uploadDate").innerHTML = snapshot.val();
+                })
+                onValue(ref(database, entry + '/uploader'), (snapshot) => {
+                    document.getElementById("uploader").innerHTML = snapshot.val();
+                })
+*/            
+                displayMaterialContent(entry, materialType);
+            }
+            populateMaterialInfo();
+            
+            
+    
+        </script>
+
+
+        
+    </body>
+
+
+</html>

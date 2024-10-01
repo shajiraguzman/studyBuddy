@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <link rel="stylesheet" href="../main.css">
+        <script src="https://code.jquery.com/jquery-3.7.0.js"></script>      
+    </head>
+
+    <header>
+        <h1>Study Buddy</h1>
+        <p>UNT Course Material for Students</p>
+    </header>
+
+    <body>
+        <div class="topnav">
+            <a href="../index.html">Home</a>
+            <a href="../upload.html">Upload</a>
+            <a href="../contact.html">Contact</a>
+            <a href="../about_us.html">About Us</a>
+            <a href="#" style="float:right">Logout</a>
+        </div>
+
+        <div class="rightcolumn">
+            <div class="card">
+                <h2>Welcome to Study Buddy!</h2>
+                <h2>Science > <span id="departmentName"></span> > Courses</h2>
+                <p>We have materials for the following courses:</p>
+                <div class="displayCourses"></div>                                
+            </div>
+        </div>
+
+        <script type="module">     
+            // Import method used: https://firebase.google.com/docs/web/alt-setup#from-the-cdn
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js'
+            import { getAuth } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js'
+            import { child, get, getDatabase, onValue, ref, set } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-database.js'
+
+            // See: https://firebase.google.com/docs/web/learn-more#config-object
+            const firebaseConfig = {
+              apiKey: "AIzaSyBLZ2TYsE8R3UthJtcDBAaF_jBpy_nQ6AQ",
+              authDomain: "study-buddy-4a942.firebaseapp.com",
+              databaseURL: "https://study-buddy-4a942-default-rtdb.firebaseio.com",
+              projectId: "study-buddy-4a942",
+              storageBucket: "study-buddy-4a942.appspot.com",
+              messagingSenderId: "838565234860",
+              appId: "1:838565234860:web:18b70bd110e7b503727709"
+            };
+            
+            // Initialize Realtime Database and get a reference to the service
+            const app = initializeApp(firebaseConfig);
+            const database = getDatabase(app);
+
+            const departmentPage = 'Biological Sciences';
+            document.getElementById("departmentName").innerHTML = departmentPage;    
+
+            // Defines a function to replace a single character in a string.
+            // Based on: https://stackoverflow.com/questions/1431094/how-do-i-replace-a-character-at-a-particular-index-in-javascript
+            function replaceCharInString(inputString, index, replacement) {
+                return inputString.substring(0, index) + replacement + inputString.substring(index + 1);
+            }
+
+            // Defines a function to transform a course name in the format of "CSCE 2100 - Foundations of Computing"
+            // into the link format "csce_2100.html".
+            function convertCourseNameToLink(courseName) {
+                courseName = courseName.toLowerCase();
+                let integersFound = false;
+                for (let j = 0; j < courseName.length; j++) {
+                    // Ends loop after the course number has been found.
+                    if (courseName.at(j) >= '0' && courseName.at(j) <= '9') {
+                        integersFound = true;
+                    }
+                    else {
+                        if (integersFound) {
+                            courseName = courseName.substr(0, j);
+                            break;
+                        }
+                    }
+
+                    // Changes all whitespace to underscores.
+                    if (courseName.at(j).trim() === '') {
+                        courseName = replaceCharInString(courseName, j, '_');
+                    }        
+                }
+                return courseName + '.html';
+            }
+
+            // Declares arrays to hold course information.
+            var courseNameArray = [];
+            var courseLinkArray = [];
+
+            // For each possible course ID (c001 to c999), adds the course's name
+            // to an array if the course is in the database and belongs to the
+            // current department.
+            onValue(ref(database, 'courses'), (snapshot) => {
+                var lastIdDidntExist = false;    
+                for (let i = 1; i < 1000; ++i) {
+                    // Constructs a course ID string.
+                    let courseId = 'c'
+                    if (i < 100) {
+                        courseId += '0';
+                    }
+                    if (i < 10) {
+                        courseId += '0';
+                    }
+                    courseId += i.toString();
+//                    console.log('Checking ' + courseId);
+                    
+                    // Checks whether the constructed string is a valid course ID.
+                    if (snapshot.child(courseId).exists()) {
+//                        console.log('exists');
+//                        console.log(snapshot.child(courseId + '/department').val());
+                        // Adds course's name to courseNameArray and course's
+                        // HTML link to coursePageArray if the course is in the
+                        // expected department.
+                        if (snapshot.child(courseId + '/department').val() === departmentPage) {
+                            courseNameArray.push(snapshot.child(courseId + '/name').val());
+                            let courseName = snapshot.child(courseId + '/name').val();
+                            courseLinkArray.push(convertCourseNameToLink(courseName));                                                        
+                        }
+                    }
+                    // If two missing courses in a row are found, it is assumed that there
+                    // no more courses in the database.  This block displays a button for
+                    // each found course then ends the loop.
+                    if (!snapshot.child(courseId).exists() && lastIdDidntExist) {
+                        break;
+                    }
+                    if (!snapshot.child(courseId).exists()) {
+                        lastIdDidntExist = true;
+                    }
+                }
+                
+                if (courseNameArray.length !== courseLinkArray.length) {
+                    $('.displayCourses').append('<p>Error loading courses. Please contact the site admin.</p>');                    
+                }
+                else {
+                    // Sorts the course arrays then displays a button for each found course.
+                    courseNameArray.sort();
+                    courseLinkArray.sort();
+
+                    if (courseNameArray.length === 0) {
+                        $('.displayCourses').append('<p>Sorry!  There\'s nothing here yet!</p>');                                        
+                    }
+                                                                                
+                    for (let i = 0; i < courseNameArray.length; i++) {
+                        $('.displayCourses').append('<a class="list-button" href="' + 
+                            courseLinkArray.at(i) + '">' + courseNameArray.at(i) + '</a>');
+                    }
+                }
+            }, {
+                onlyOnce: true
+            });
+            
+        
+        </script>
+
+
+
+
+    </body>
+
+
+</html>

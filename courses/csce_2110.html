@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+
+    <head>
+        <link rel="stylesheet" href="../main.css">
+        <script src="https://code.jquery.com/jquery-3.7.0.js"></script>      
+    </head>
+
+    <header>
+        <h1>Study Buddy</h1>
+        <p>UNT Course Material for Students</p>
+    </header>
+
+    <body>
+        <div class="topnav">
+            <a href="../index.html">Home</a>
+            <a href="../upload.html">Upload</a>
+            <a href="../contact.html">Contact</a>
+            <a href="../about_us.html">About Us</a>
+            <a href="#" style="float:right">Logout</a>
+        </div>
+
+        <div class="rightcolumn">
+            <div class="card">
+                <h2>Welcome to Study Buddy!</h2>
+                <h2><span id="collegeName"></span> > <span id="departmentName"></span> > <span id="courseName"></span></h2>
+                <p>We have the following materials for this course:</p>
+                <div class="displayMaterials"></div>                                
+            </div>
+        </div>
+
+        <script type="module">     
+            // Import method used: https://firebase.google.com/docs/web/alt-setup#from-the-cdn
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js'
+            import { getAuth } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js'
+            import { child, get, getDatabase, onValue, ref, set } from 'https://www.gstatic.com/firebasejs/10.6.0/firebase-database.js'
+
+            // See: https://firebase.google.com/docs/web/learn-more#config-object
+            const firebaseConfig = {
+              apiKey: "AIzaSyBLZ2TYsE8R3UthJtcDBAaF_jBpy_nQ6AQ",
+              authDomain: "study-buddy-4a942.firebaseapp.com",
+              databaseURL: "https://study-buddy-4a942-default-rtdb.firebaseio.com",
+              projectId: "study-buddy-4a942",
+              storageBucket: "study-buddy-4a942.appspot.com",
+              messagingSenderId: "838565234860",
+              appId: "1:838565234860:web:18b70bd110e7b503727709"
+            };
+            
+            // Initialize Realtime Database and get a reference to the service
+            const app = initializeApp(firebaseConfig);
+            const database = getDatabase(app);
+
+            const coursePage = 'CSCE 2110 - Foundations of Data Structures';
+            
+            // For each possible material ID (m001 to m999), checks the course's name
+            // and displays its data if it matches the current course.
+            onValue(ref(database, 'courses'), (snapshot) => {
+                var lastIdDidntExist = false;    
+                for (let i = 1; i < 1000; i++) {
+                    // Constructs a course ID string.
+                    let courseId = 'c'
+                    if (i < 100) {
+                        courseId += '0';
+                    }
+                    if (i < 10) {
+                        courseId += '0';
+                    }
+                    courseId += i.toString();
+                    
+                    // Checks whether the constructed string is a valid course ID.
+                    if (snapshot.child(courseId).exists()) {
+
+                        // If the checked course matches the course this page is named after,
+                        // loads the course's college and department information.
+                        if (snapshot.child(courseId + '/name').val() === coursePage) {
+                            document.getElementById("collegeName").innerHTML = snapshot.child(courseId + '/college').val();
+                            document.getElementById("departmentName").innerHTML = snapshot.child(courseId + '/department').val();
+                            document.getElementById("courseName").innerHTML = coursePage;
+                            break;
+                        }
+                    }
+                    // If two missing courses in a row are found, it is assumed that there
+                    // no more coursese in the database.
+                    if (!snapshot.child(courseId).exists() && lastIdDidntExist) {
+                        $('.displayMaterials').append('<p>Error loading course information. Please contact the site admin.</p>');                    
+                        break;
+                    }
+                    if (!snapshot.child(courseId).exists()) {
+                        lastIdDidntExist = true;
+                    }
+                }                                            
+            }, {
+                onlyOnce: true
+            });  
+
+            // Declares arrays to hold material information.
+            var materialNameArray = [];
+            var materialLinkArray = [];
+
+            // For each possible material ID (m001 to m999), adds the material's name
+            // to an array if the material is in the database and belongs to the
+            // current course.
+            onValue(ref(database, 'materials'), (snapshot) => {
+                var lastIdDidntExist = false;    
+                for (let i = 1; i < 1000; i++) {
+                    // Constructs a material ID string.
+                    let materialId = 'm'
+                    if (i < 100) {
+                        materialId += '0';
+                    }
+                    if (i < 10) {
+                        materialId += '0';
+                    }
+                    materialId += i.toString();
+                    
+                    // Checks whether the constructed string is a valid material ID.
+                    if (snapshot.child(materialId).exists()) {
+                        // Adds material's name to materialNameArray and material's
+                        // HTML link to materialLinkArray if the material belongs
+                        // to the current course.
+                        if (snapshot.child(materialId + '/course').val() === coursePage) {
+                            let materialName = snapshot.child(materialId + '/name').val() + ' (uploaded by ' + 
+                                snapshot.child(materialId + '/uploader').val() + ' on ' + 
+                                snapshot.child(materialId + '/uploadDate').val() + ')';
+                            materialNameArray.push(materialName);
+                            materialLinkArray.push(materialId + '.html');                                                        
+                        }
+                    }
+                    // If two missing materials in a row are found, it is assumed that there
+                    // no more materials in the database.  This block displays a button for
+                    // each found materials then ends the loop.
+                    if (!snapshot.child(materialId).exists() && lastIdDidntExist) {
+                        break;
+                    }
+                    if (!snapshot.child(materialId).exists()) {
+                        lastIdDidntExist = true;
+                    }
+                }
+                
+                if (materialNameArray.length !== materialLinkArray.length) {
+                    $('.displayMaterials').append('<p>Error loading materials. Please contact the site admin.</p>');                    
+                }
+                else {
+                    // Displays a button for each found material.
+                    if (materialNameArray.length === 0) {
+                        $('.displayMaterials').append('<p>Sorry!  There\'s nothing here yet!</p>');                                        
+                    }
+                                        
+                    for (let i = 0; i < materialNameArray.length; i++) {
+                        $('.displayMaterials').append('<a class="list-button" href="../materials/' +
+                            materialLinkArray.at(i) + '">' + materialNameArray.at(i) + '</a>');
+                    }
+                }
+            }, {
+                onlyOnce: true
+            });                    
+        </script>
+
+    </body>
+
+
+</html>
